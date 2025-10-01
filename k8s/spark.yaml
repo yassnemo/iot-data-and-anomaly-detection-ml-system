@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: iot-anomaly
+spec:
+  ports:
+    - name: web-ui
+      port: 8080
+      targetPort: 8080
+    - name: spark
+      port: 7077
+      targetPort: 7077
+  selector:
+    app: spark-master
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-master
+  namespace: iot-anomaly
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-master
+  template:
+    metadata:
+      labels:
+        app: spark-master
+    spec:
+      containers:
+        - name: spark-master
+          image: bitnami/spark:3.4.1
+          env:
+            - name: SPARK_MODE
+              value: "master"
+          ports:
+            - containerPort: 8080
+            - containerPort: 7077
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  namespace: iot-anomaly
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spark-worker
+  template:
+    metadata:
+      labels:
+        app: spark-worker
+    spec:
+      containers:
+        - name: spark-worker
+          image: bitnami/spark:3.4.1
+          env:
+            - name: SPARK_MODE
+              value: "worker"
+            - name: SPARK_MASTER_URL
+              value: "spark://spark-master:7077"
+            - name: SPARK_WORKER_MEMORY
+              value: "4G"
+            - name: SPARK_WORKER_CORES
+              value: "4"

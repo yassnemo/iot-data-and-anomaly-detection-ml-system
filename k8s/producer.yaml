@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  namespace: iot-anomaly
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      containers:
+        - name: producer
+          image: iot-anomaly-producer:latest
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: NUM_SENSORS
+              value: "10000"
+            - name: MESSAGES_PER_SECOND
+              value: "1"
+          command: ["python", "src/producer/kafka_producer.py"]
