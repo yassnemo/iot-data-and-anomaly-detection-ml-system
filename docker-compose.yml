@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # Kafka (KRaft mode - no Zookeeper needed)
   kafka:
-    image: apache/kafka:3.6.0
+    image: apache/kafka:latest
     hostname: kafka
     container_name: kafka
     ports:
@@ -33,7 +31,7 @@ services:
 
   # MinIO (S3-compatible object storage)
   minio:
-    image: minio/minio:RELEASE.2023-09-30T07-02-29Z
+    image: minio/minio:latest
     hostname: minio
     container_name: minio
     ports:
@@ -53,7 +51,7 @@ services:
 
   # Create MinIO bucket on startup
   minio-init:
-    image: minio/mc:RELEASE.2023-09-29T16-41-22Z
+    image: minio/mc:latest
     depends_on:
       minio:
         condition: service_healthy
@@ -67,7 +65,7 @@ services:
 
   # Spark Master
   spark-master:
-    image: bitnami/spark:3.4.1
+    image: apache/spark:3.5.0
     hostname: spark-master
     container_name: spark-master
     ports:
@@ -75,10 +73,10 @@ services:
       - "7077:7077"
     environment:
       - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     volumes:
       - ./src:/app/src
       - ./models:/models
@@ -86,7 +84,7 @@ services:
 
   # Spark Worker
   spark-worker:
-    image: bitnami/spark:3.4.1
+    image: apache/spark:3.5.0
     container_name: spark-worker
     depends_on:
       - spark-master
@@ -95,10 +93,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=4G
       - SPARK_WORKER_CORES=4
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     volumes:
       - ./src:/app/src
       - ./models:/models
@@ -106,7 +101,7 @@ services:
 
   # TensorFlow Serving
   tfserving:
-    image: tensorflow/serving:2.14.0
+    image: tensorflow/serving:latest
     hostname: tfserving
     container_name: tfserving
     ports:
@@ -126,7 +121,7 @@ services:
 
   # Prometheus
   prometheus:
-    image: prom/prometheus:v2.47.0
+    image: prom/prometheus:latest
     hostname: prometheus
     container_name: prometheus
     ports:
@@ -145,7 +140,7 @@ services:
 
   # Grafana
   grafana:
-    image: grafana/grafana:10.1.2
+    image: grafana/grafana:latest
     hostname: grafana
     container_name: grafana
     ports:
