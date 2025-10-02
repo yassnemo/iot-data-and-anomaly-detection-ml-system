@@ -23,11 +23,6 @@ services:
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     volumes:
       - kafka-data:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # MinIO (S3-compatible object storage)
   minio:
@@ -53,8 +48,7 @@ services:
   minio-init:
     image: minio/mc:latest
     depends_on:
-      minio:
-        condition: service_healthy
+      - minio
     entrypoint: >
       /bin/sh -c "
       mc alias set myminio http://minio:9000 minioadmin minioadmin;
@@ -169,10 +163,8 @@ services:
     hostname: producer
     container_name: producer
     depends_on:
-      kafka:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      - kafka
+      - minio
     environment:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - NUM_SENSORS=10000
