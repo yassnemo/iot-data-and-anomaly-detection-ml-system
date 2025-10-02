@@ -1,6 +1,3 @@
-# Core dependencies
-python>=3.10
-
 # Kafka
 kafka-python==2.0.2
 aiokafka==0.8.1
