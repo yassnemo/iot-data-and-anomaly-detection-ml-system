@@ -15,7 +15,16 @@ git clone https://github.com/yassnemo/iot-data-and-anomaly-detection-ml-system.g
 cd iot-data-and-anomaly-detection-ml-system
 ```
 
-2. Run setup:
+2. Enable PowerShell script execution (if needed):
+```powershell
+# Check current policy
+Get-ExecutionPolicy
+
+# If Restricted, set to RemoteSigned for current user
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+3. Run setup:
 ```powershell
 .\scripts\setup.ps1
 ```
@@ -108,6 +117,16 @@ docker-compose exec producer python src/producer/kafka_producer.py --num-sensors
 ```
 
 ## Troubleshooting
+
+### PowerShell Script Execution Error
+If you get "scripts is disabled on this system" error:
+```powershell
+# Option 1: Run with bypass (one-time)
+PowerShell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+
+# Option 2: Change policy for current user (permanent)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
 
 ### Check Service Logs
 ```powershell
