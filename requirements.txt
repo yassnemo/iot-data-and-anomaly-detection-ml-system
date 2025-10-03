@@ -28,7 +28,7 @@ requests==2.31.0
 
 # Async
 asyncio==3.4.3
-aiohttp==3.8.5
+aiohttp==3.12.14
 
 # Testing
 pytest==7.4.2
