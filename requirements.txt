@@ -24,7 +24,7 @@ prometheus-client==0.17.1
 # Utilities
 python-dotenv==1.0.0
 pyyaml==6.0.1
-requests==2.31.0
+requests==2.32.4
 
 # Async
 asyncio==3.4.3
