@@ -2,6 +2,10 @@
 
 A production-ready system for detecting anomalies in 10,000+ IoT sensors using Apache Kafka, Spark Structured Streaming, TensorFlow, and MinIO.
 
+### 📖 [**Read the full documentation site →**](https://yassnemo.github.io/iot-data-and-anomaly-detection-ml-system/)
+
+An interactive, end-to-end walkthrough of the architecture, streaming pipeline, ML model, and results. Source lives in [`docs/`](docs/) and is published with GitHub Pages.
+
 ## Architecture
 
 - **Data Ingestion**: Async Kafka producer simulating 10K sensors @ 1 msg/sec
@@ -198,6 +202,31 @@ docker-compose logs tfserving
 ├── docker-compose.yml     # Docker Compose configuration
 └── requirements.txt       # Python dependencies
 ```
+
+## Documentation Site
+
+The interactive documentation is a **Vite + React (TypeScript)** app. The source lives in
+[`site/`](site/) and the production build is committed to [`docs/`](docs/), which **GitHub Pages**
+serves directly — no CI required.
+
+### Develop / build
+
+```powershell
+cd site
+npm install
+npm run dev      # local dev server with hot reload
+npm run build    # type-check + build into ../docs (the published output)
+```
+
+### Publish on GitHub Pages
+
+1. Push this repo to GitHub.
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment**, set **Source = Deploy from a branch**, **Branch = `master`**, **Folder = `/docs`**, then **Save**.
+4. After ~1 minute the site is live at `https://yassnemo.github.io/iot-data-and-anomaly-detection-ml-system/`.
+
+> The Vite `base` is set to the repository name in `site/vite.config.ts`. If you fork/rename the
+> repo, update `base` (and the links in the app) to match.
 
 ## License
 
