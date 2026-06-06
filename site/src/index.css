@@ -361,14 +361,29 @@ code, pre { font-family: var(--mono); }
 
 @media (max-width: 720px) {
   :root { --gutter: 1.15rem; }
-  .nav__inner { gap: 1rem; }
-  .nav__links { position: fixed; inset: 0 0 auto 0; flex-direction: column; gap: 0; margin-left: 0; background: rgba(23,19,13,0.98); backdrop-filter: blur(16px); padding: 4.8rem 1.4rem 1.6rem; transform: translateY(-100%); transition: transform 0.4s var(--ease); border-bottom: 1px solid var(--line); }
-  .nav.is-open .nav__links { transform: translateY(0); }
-  .nav__links a { padding: 1.05rem 0.2rem; border-bottom: 1px solid var(--line); width: 100%; font-size: 1.05rem; }
-  .nav__links a::after { display: none; }
-  .nav__burger { display: flex; }
+  .nav__inner { gap: 0.6rem; }
+  .nav__cta { margin-left: auto; }          /* push GitHub + burger to the right edge */
+  .nav__burger { display: flex; order: 2; }
+  .nav__cta .btn--ghost { padding: 0.62rem; order: 1; }
   .nav__cta .btn--ghost span { display: none; }
-  .nav__cta .btn--ghost { padding: 0.62rem; }
+
+  /* Firefox-style dropdown: compact card anchored to the top-right */
+  .nav__links {
+    position: fixed; top: 58px; right: var(--gutter); left: auto; margin: 0;
+    flex-direction: column; gap: 2px; min-width: 210px;
+    background: rgba(28, 22, 16, 0.97);
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
+    border: 1px solid var(--line-2); border-radius: 12px; padding: 0.4rem;
+    box-shadow: 0 18px 44px -16px rgba(0,0,0,0.85);
+    transform-origin: top right;
+    opacity: 0; transform: scale(0.94) translateY(-6px); pointer-events: none;
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  .nav.is-open .nav__links { opacity: 1; transform: none; pointer-events: auto; }
+  .nav__links a { padding: 0.72rem 0.85rem; border-radius: 8px; width: 100%; font-size: 0.95rem; color: var(--text-mut); }
+  .nav__links a:hover, .nav__links a.is-active { color: var(--text); background: rgba(236,229,216,0.06); }
+  .nav__links a::after { display: none; }
 
   .hero { padding: 7rem var(--gutter) 4rem; min-height: 92svh; }
   .section { padding: 4.25rem var(--gutter); }
