@@ -225,8 +225,11 @@ npm run build    # type-check + build into ../docs (the published output)
 3. Under **Build and deployment**, set **Source = Deploy from a branch**, **Branch = `master`**, **Folder = `/docs`**, then **Save**.
 4. After ~1 minute the site is live at `https://yassnemo.github.io/iot-data-and-anomaly-detection-ml-system/`.
 
-> The Vite `base` is set to the repository name in `site/vite.config.ts`. If you fork/rename the
-> repo, update `base` (and the links in the app) to match.
+### Publish on Vercel
+
+`vercel.json` (repo root) tells Vercel to build the `site/` app and serve the `docs/` output — no
+dashboard config needed. Just import the repo in Vercel. The Vite `base` is relative (`./`), so the
+same build works from a domain root (Vercel) or a `/repo` subpath (GitHub Pages).
 
 ## License
 
