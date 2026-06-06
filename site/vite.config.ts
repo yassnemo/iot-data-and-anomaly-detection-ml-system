@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Built site is published via GitHub Pages from the repo's /docs folder.
-// `base` must match the repository name so asset URLs resolve on Pages.
+// Output goes to ../docs (committed). Relative `base` makes asset URLs work
+// whether the site is served from a domain root (Vercel) or a /repo subpath
+// (GitHub Pages) — no per-host config needed.
 export default defineConfig({
   plugins: [react()],
-  base: '/iot-data-and-anomaly-detection-ml-system/',
+  base: './',
   build: {
     outDir: '../docs',
     emptyOutDir: true,
