@@ -205,31 +205,34 @@ docker-compose logs tfserving
 
 ## Documentation Site
 
-The interactive documentation is a **Vite + React (TypeScript)** app. The source lives in
-[`site/`](site/) and the production build is committed to [`docs/`](docs/), which **GitHub Pages**
-serves directly — no CI required.
+The interactive documentation is a **Vite + React (TypeScript)** app in [`site/`](site/). The Vite
+`base` is relative (`./`), so the same build runs from a domain root (Vercel) or a `/repo` subpath
+(GitHub Pages).
 
 ### Develop / build
 
 ```powershell
 cd site
 npm install
-npm run dev      # local dev server with hot reload
-npm run build    # type-check + build into ../docs (the published output)
+npm run dev          # local dev server with hot reload
+npm run build        # build to site/dist  (what Vercel serves)
+npm run build:pages  # build to ../docs    (committed, for GitHub Pages)
 ```
-
-### Publish on GitHub Pages
-
-1. Push this repo to GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, set **Source = Deploy from a branch**, **Branch = `master`**, **Folder = `/docs`**, then **Save**.
-4. After ~1 minute the site is live at `https://yassnemo.github.io/iot-data-and-anomaly-detection-ml-system/`.
 
 ### Publish on Vercel
 
-`vercel.json` (repo root) tells Vercel to build the `site/` app and serve the `docs/` output — no
-dashboard config needed. Just import the repo in Vercel. The Vite `base` is relative (`./`), so the
-same build works from a domain root (Vercel) or a `/repo` subpath (GitHub Pages).
+Import the repo in Vercel. Because `package.json` lives in `site/`, Vercel sets the project's
+**Root Directory = `site`** automatically and detects Vite — no `vercel.json` or custom commands
+needed. It runs `npm install` + `npm run build` and serves `site/dist`.
+
+> If Vercel ever reports *"No Output Directory named dist"*, it means the Root Directory isn't
+> `site`. Set **Settings → General → Root Directory = `site`** and redeploy.
+
+### Publish on GitHub Pages
+
+1. Run `npm run build:pages` and commit the regenerated `docs/`.
+2. **Settings → Pages → Source = Deploy from a branch → Branch `master` → Folder `/docs`**.
+3. Live at `https://yassnemo.github.io/iot-data-and-anomaly-detection-ml-system/`.
 
 ## License
 
