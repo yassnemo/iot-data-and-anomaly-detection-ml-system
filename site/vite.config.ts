@@ -1,14 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Output goes to ../docs (committed). Relative `base` makes asset URLs work
-// whether the site is served from a domain root (Vercel) or a /repo subpath
-// (GitHub Pages) — no per-host config needed.
+// Default build (`npm run build`) outputs to ./dist — what Vercel serves when
+// the project's Root Directory is `site`. A separate `npm run build:pages`
+// re-targets ../docs for GitHub Pages. Relative `base` makes asset URLs work
+// from a domain root (Vercel) or a /repo subpath (Pages) alike.
 export default defineConfig({
   plugins: [react()],
   base: './',
-  build: {
-    outDir: '../docs',
-    emptyOutDir: true,
-  },
 })
