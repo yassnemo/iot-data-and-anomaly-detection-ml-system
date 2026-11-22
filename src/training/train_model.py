@@ -7,7 +7,7 @@ import json
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 import pickle
 
 import tensorflow as tf
@@ -107,23 +107,44 @@ class AnomalyDataGenerator:
         return np.array(data)
     
     @classmethod
-    def generate_training_data(cls, n_normal: int = 10000, anomaly_ratio: float = 0.05) -> Tuple[np.ndarray, np.ndarray]:
+    def generate_training_data(
+        cls,
+        n_normal: int = 10000,
+        anomaly_ratio: float = 0.05,
+        n_anomalies: Optional[int] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Generate complete training dataset"""
         # Normal data
-        normal_data = cls.generate_normal_data(n_normal)
+        if n_normal < 0:
+            raise ValueError("n_normal must be non-negative")
+        normal_data = (
+            cls.generate_normal_data(n_normal) if n_normal else np.empty((0, 6))
+        )
         normal_labels = np.zeros(n_normal)
         
         # Anomaly data (distributed across types)
-        n_anomalies = int(n_normal * anomaly_ratio)
-        n_per_type = n_anomalies // 4
-        
-        spike_data = cls.generate_spike_anomalies(n_per_type)
-        drift_data = cls.generate_drift_anomalies(n_per_type)
-        stuck_data = cls.generate_stuck_anomalies(n_per_type)
-        noise_data = cls.generate_noise_anomalies(n_per_type)
-        
-        anomaly_data = np.vstack([spike_data, drift_data, stuck_data, noise_data])
-        anomaly_labels = np.ones(len(anomaly_data))
+        if n_anomalies is None:
+            n_anomalies = int(n_normal * anomaly_ratio)
+        if n_anomalies < 0:
+            raise ValueError("n_anomalies must be non-negative")
+        anomaly_generators = (
+            cls.generate_spike_anomalies,
+            cls.generate_drift_anomalies,
+            cls.generate_stuck_anomalies,
+            cls.generate_noise_anomalies,
+        )
+        anomaly_counts = [
+            n_anomalies // 4 + int(index < n_anomalies % 4) for index in range(4)
+        ]
+        anomaly_batches = [
+            generator(count)
+            for generator, count in zip(anomaly_generators, anomaly_counts)
+            if count
+        ]
+        anomaly_data = (
+            np.vstack(anomaly_batches) if anomaly_batches else np.empty((0, 6))
+        )
+        anomaly_labels = np.ones(n_anomalies)
         
         # Combine and shuffle
         X = np.vstack([normal_data, anomaly_data])
