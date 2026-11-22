@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+from typing import List, Optional
 
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -13,26 +14,44 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.training.train_model import AnomalyDataGenerator
 
 
+def _generate_timestamps(
+    n_rows: int, end_time: Optional[datetime] = None
+) -> List[datetime]:
+    if n_rows < 0:
+        raise ValueError("n_rows must be non-negative")
+    if n_rows == 0:
+        return []
+
+    if end_time is None:
+        end_time = datetime.now()
+    start_time = end_time - timedelta(days=30)
+    if n_rows == 1:
+        return [end_time]
+
+    duration = end_time - start_time
+    return [start_time + duration * (index / (n_rows - 1)) for index in range(n_rows)]
+
+
 def generate_and_save_training_data(
-    n_samples: int = 100000,
-    anomaly_ratio: float = 0.05,
-    output_dir: str = 'data'
-):
+    n_samples: int = 100000, anomaly_ratio: float = 0.05, output_dir: str = "data"
+) -> pd.DataFrame:
     """Generate and save training data"""
+    if n_samples <= 0:
+        raise ValueError("n_samples must be positive")
+    if not 0 <= anomaly_ratio <= 1:
+        raise ValueError("anomaly_ratio must be between 0 and 1")
+
     print(f"Generating {n_samples} samples with {anomaly_ratio*100}% anomalies...")
     
     # Generate data
+    n_anomalies = int(n_samples * anomaly_ratio)
+    n_normal = n_samples - n_anomalies
     X, y = AnomalyDataGenerator.generate_training_data(
-        n_normal=n_samples,
-        anomaly_ratio=anomaly_ratio
+        n_normal=n_normal, anomaly_ratio=anomaly_ratio, n_anomalies=n_anomalies
     )
     
     # Create timestamps
-    start_time = datetime.now() - timedelta(days=30)
-    timestamps = [
-        start_time + timedelta(seconds=i*60)
-        for i in range(len(X))
-    ]
+    timestamps = _generate_timestamps(len(X))
     
     # Create DataFrame
     df = pd.DataFrame({
@@ -73,7 +92,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Generate training data')
     parser.add_argument('--samples', type=int, default=100000,
-                       help='Number of samples to generate')
+                       help='Total number of samples to export')
     parser.add_argument('--anomaly-ratio', type=float, default=0.05,
                        help='Ratio of anomalies')
     parser.add_argument('--output-dir', default='data',
