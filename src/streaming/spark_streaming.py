@@ -2,22 +2,71 @@
 Spark Structured Streaming Job
 Reads from Kafka, performs windowed feature extraction, inference, and writes to MinIO/Kafka
 """
+import logging
 import os
 import sys
 import json
-from typing import Iterator
+from typing import Iterator, Optional
 import requests
 import numpy as np
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
-    col, from_json, to_json, window, avg, stddev, min as spark_min, 
-    max as spark_max, count, current_timestamp, struct, udf
+    abs as spark_abs,
+    avg,
+    col,
+    count,
+    current_timestamp,
+    from_json,
+    isnan,
+    lit,
+    max as spark_max,
+    min as spark_min,
+    stddev,
+    struct,
+    sum as spark_sum,
+    to_json,
+    when,
+    window,
+    udf,
 )
 from pyspark.sql.types import (
     StructType, StructField, StringType, DoubleType, TimestampType, 
     BooleanType, MapType, ArrayType
 )
+from pyspark.sql.streaming import StreamingQueryListener
+from pyspark.sql.streaming.listener import (
+    QueryProgressEvent,
+    QueryStartedEvent,
+    QueryTerminatedEvent,
+)
+
+
+logger = logging.getLogger(__name__)
+KAFKA_VALIDATION_OBSERVATION = "kafka_reading_validation"
+
+
+class _KafkaValidationListener(StreamingQueryListener):
+    """Log rejected Kafka readings by reason for each streaming trigger."""
+
+    def onQueryStarted(self, event: QueryStartedEvent) -> None:
+        pass
+
+    def onQueryProgress(self, event: QueryProgressEvent) -> None:
+        metrics = event.progress.observedMetrics.get(KAFKA_VALIDATION_OBSERVATION)
+        if metrics is None:
+            return
+
+        counts = metrics.asDict()
+        if any(counts.values()):
+            logger.warning(
+                "Rejected Kafka readings in batch %s by reason: %s",
+                event.progress.batchId,
+                counts,
+            )
+
+    def onQueryTerminated(self, event: QueryTerminatedEvent) -> None:
+        pass
 
 
 # Schema for raw Kafka messages
@@ -49,6 +98,7 @@ class SparkStreamingJob:
         self.anomaly_threshold = float(os.getenv('ANOMALY_THRESHOLD', '0.95'))
         
         self.spark = None
+        self._validation_listener: Optional[_KafkaValidationListener] = None
         
     def create_spark_session(self):
         """Create Spark session with required configurations"""
@@ -64,6 +114,9 @@ class SparkStreamingJob:
             .getOrCreate()
         
         self.spark.sparkContext.setLogLevel("WARN")
+        if self._validation_listener is None:
+            self._validation_listener = _KafkaValidationListener()
+            self.spark.streams.addListener(self._validation_listener)
         print("Spark session created successfully")
         
     def read_kafka_stream(self):
@@ -77,19 +130,44 @@ class SparkStreamingJob:
             .option("maxOffsetsPerTrigger", 10000) \
             .load()
         
-        # Parse JSON from Kafka value
-        parsed_df = df.select(
+        return self._parse_kafka_readings(df)
+
+    def _parse_kafka_readings(self, kafka_df: DataFrame) -> DataFrame:
+        """Parse and validate Kafka readings before downstream aggregation."""
+        parsed_df = kafka_df.select(
             from_json(col("value").cast("string"), RAW_SCHEMA).alias("data"),
-            col("timestamp").alias("kafka_timestamp")
+            col("timestamp").alias("kafka_timestamp"),
         ).select("data.*", "kafka_timestamp")
         
         # Convert timestamp string to timestamp type
         parsed_df = parsed_df.withColumn(
-            "timestamp",
-            col("timestamp").cast(TimestampType())
+            "timestamp", col("timestamp").cast(TimestampType())
         )
-        
-        return parsed_df
+
+        return self._validate_kafka_readings(parsed_df)
+
+    def _validate_kafka_readings(self, parsed_df: DataFrame) -> DataFrame:
+        """Observe rejection counts, then exclude invalid readings."""
+        invalid_sensor_id = col("sensor_id").isNull() | col("sensor_id").rlike(r"^\s*$")
+        invalid_timestamp = col("timestamp").isNull()
+        value = col("value")
+        invalid_value = (
+            value.isNull() | isnan(value) | (spark_abs(value) == lit(float("inf")))
+        )
+
+        observed_df = parsed_df.observe(
+            KAFKA_VALIDATION_OBSERVATION,
+            spark_sum(when(invalid_sensor_id, 1).otherwise(0)).alias(
+                "invalid_sensor_id"
+            ),
+            spark_sum(when(invalid_timestamp, 1).otherwise(0)).alias(
+                "invalid_timestamp"
+            ),
+            spark_sum(when(invalid_value, 1).otherwise(0)).alias("invalid_value"),
+        )
+        return observed_df.filter(
+            ~invalid_sensor_id & ~invalid_timestamp & ~invalid_value
+        )
     
     def extract_features(self, df):
         """Extract windowed features from raw data"""
